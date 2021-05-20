@@ -1,7 +1,7 @@
 from backtracking import isCorrect, solveBoard, emptySquare
+from gameFunctions import drawWindow
 import pygame
 from pygame.locals import *
-import time
 pygame.init()
 
 # ---------------------- Board Class ----------------------
@@ -18,16 +18,17 @@ class Board:
 			  [7, 0, 3, 0, 1, 8, 0, 0, 0]
 			]
 
-	def __init__(self, rows, columns, width, height):
+	def __init__(self, rows, columns, width, height, window):
 		self.rows = rows
 		self.columns = columns
 		self.width = width
 		self.height = height
+		self.window = window
 		self.squares = [[Square(self.inputBoard[i][j], i, j, width/9, height/9) for j in range(columns)] for i in range(rows)]
 		self.highlighted = None
 		self.state = None
 
-	def drawBoard(self, window):
+	def drawBoard(self):
 		# Draw the grid
 		gridGap = self.height / 9
 		for i in range(self.rows + 1):
@@ -38,14 +39,14 @@ class Board:
 				gridLine = 1
 				colour = (128, 128, 128)
 			# Horizontal grid lines
-			pygame.draw.line(window, colour, (0, gridGap * i), (self.width, gridGap * i),gridLine)
+			pygame.draw.line(self.window, colour, (0, gridGap * i), (self.width, gridGap * i),gridLine)
 			# Vertical grid lines
-			pygame.draw.line(window, colour, (gridGap * i, 0), (gridGap * i, self.height), gridLine)
+			pygame.draw.line(self.window, colour, (gridGap * i, 0), (gridGap * i, self.height), gridLine)
 
 		# Draw the numbers
 		for i in range(self.rows):
 			for j in range(self.columns):
-				self.squares[i][j].drawNumber(window)
+				self.squares[i][j].drawNumber(self.window)
 
 	# Will return position in the form (row, column)
 	def clickPosition(self, mousePosition):
@@ -61,11 +62,23 @@ class Board:
 		self.squares[row][column].highlighted = True
 		self.highlighted = (row, column)
 
+	# Allows the user to see their move before confirming
+	def pencilIn(self, num):
+		row = self.highlighted[0]
+		column = self.highlighted[1]
+		self.squares[row][column].setTemp(num)
+
+	# Allows the user to clear their move
+	def clear(self):
+		row = self.highlighted[0]
+		column = self.highlighted[1]
+		self.squares[row][column].setTemp(0)
+
 	def validatePlayerMove(self, num):
 		row = self.highlighted[0]
 		column = self.highlighted[1]
 
-		# If it's an empty square, allow it as long as it's valid
+		# If it's an empty square, allow it as long as it's correct
 		if self.squares[row][column].num == 0:
 			self.squares[row][column].setNum(num)
 			self.updateState()
@@ -77,7 +90,8 @@ class Board:
 				self.updateState()
 				return False
 
-	def solveGUIBoard(self, window):
+	# Redefining the backtracking algorithm to work with a GUI
+	def solveGUIBoard(self):
 		self.updateState()
 		square = emptySquare(self.state)
 		if square:
@@ -90,22 +104,22 @@ class Board:
 			if isCorrect(self.state, (row, column), number):
 				self.state[row][column] = number
 				self.squares[row][column].setNum(number)
-				self.squares[row][column].solvedDrawNumber(window)
+				self.squares[row][column].solvedDrawNumber(self.window)
 				self.updateState()
 
-			if self.solveGUIBoard(window):
-				return True
+				if self.solveGUIBoard():
+					return True
 
-			self.state[row][column] = 0
-			self.squares[row][column].setNum(0)
-			self.updateState()
-			self.squares[row][column].solvedDrawNumber(window)
+				self.state[row][column] = 0
+				self.squares[row][column].setNum(0)
+				self.updateState()
+				self.squares[row][column].solvedDrawNumber(self.window)
 
 		return False
 
 	# Updates the state of the board after moves have been made
 	def updateState(self):
-		self.state = [[self.squares[i][j] for j in range(self.columns)] for i in range(self.rows)]
+		self.state = [[self.squares[i][j].num for j in range(self.columns)] for i in range(self.rows)]
 
 	# Checks for empty squares in the board
 	def gameDone(self):
@@ -114,6 +128,7 @@ class Board:
 				if self.squares[i][j].num == 0:
 					return False
 		return True
+		
 
 # ---------------------- Square Class ----------------------
 class Square:
@@ -131,7 +146,7 @@ class Square:
 		font = pygame.font.SysFont('arial', 40)
 		if self.num == 0 and self.temp != 0:
 			message = font.render(str(self.temp), 1, (255, 0, 0))
-			window.blit(message, (self.column * self.width, self.row * self.width))
+			window.blit(message, (self.column * self.width + 20, self.row * self.width + 10))
 		elif self.num != 0:
 			message = font.render(str(self.num), 1, (0, 0, 0))
 			window.blit(message, (self.column * self.width + 20, self.row * self.width + 10))
@@ -151,32 +166,19 @@ class Square:
 	def setTemp(self, num):
 		self.temp = num
 
-# ---------------------- Game functions ----------------------
-
-def formatTime(milliseconds):
-	seconds = int(milliseconds / 1000);
-	return time.strftime('%M:%S', time.gmtime(seconds))
-
-def drawWindow(window, board, clock):
-	window.fill((248, 248, 255))
-	# Drawing the board
-	board.drawBoard(window)
-	# Drawing the time
-	font = pygame.font.SysFont('arial', 20)
-	message = font.render(str(formatTime(clock)), 1, (0, 0, 0))
-	window.blit(message, (525, 615))
 
 # ---------------------- Main Loop ----------------------
 def gameLoop():
 	window = pygame.display.set_mode((600, 650))
 	pygame.display.set_caption("Sudoku Hax")
-	sudokuBoard = Board(9, 9, 600, 600)
+	sudokuBoard = Board(9, 9, 600, 600, window)
 	clockObject = pygame.time.Clock()
 	total_time = 0
 	valueToRender = None
 	quit = False
 
 	while not quit:
+
 		for event in pygame.event.get():
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_1:
@@ -197,8 +199,22 @@ def gameLoop():
 					valueToRender = 8
 				if event.key == pygame.K_9:
 					valueToRender = 9
+
+				if event.key == pygame.K_BACKSPACE:
+					sudokuBoard.clear()
+					valueToRender = None
+
+				if event.key == pygame.K_RETURN:
+					row = sudokuBoard.highlighted[0]
+					column = sudokuBoard.highlighted[1]
+					if sudokuBoard.squares[row][column].temp != 0:
+						if sudokuBoard.validatePlayerMove(sudokuBoard.squares[row][column].temp):
+							continue
+						else:
+							print("WRONG")
+
 				if event.key == pygame.K_SPACE:
-					sudokuBoard.solveGUIBoard(window)
+					sudokuBoard.solveGUIBoard()
 
 			if event.type == pygame.MOUSEBUTTONDOWN:
 				mousePosition = pygame.mouse.get_pos()
@@ -209,6 +225,9 @@ def gameLoop():
 
 			if event.type == pygame.QUIT:
 				quit = True
+
+		if valueToRender != None and sudokuBoard.highlighted:
+			sudokuBoard.pencilIn(valueToRender)
 
 		total_time = total_time + clockObject.get_time()
 		drawWindow(window, sudokuBoard, total_time)
