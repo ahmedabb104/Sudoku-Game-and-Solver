@@ -105,5 +105,5 @@ def solveBoard(board):
 	# Triggers the backtracking
 	return False
 
-solveBoard(inputBoard)
-print(inputBoard)
+# solveBoard(inputBoard)
+# print(inputBoard)
