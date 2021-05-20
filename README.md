@@ -1,5 +1,5 @@
 # Sudoku Game and Solver
-Play sudoku using a GUI, and also solve it instantly
+Play sudoku using a GUI. Also solve instantly, thanks to a backtracking algorithm
 ***  
 ### How To Run
 If you have pygame installed: Run GUI.py or GUI.exe
