@@ -8,5 +8,7 @@ Play sudoku using a GUI. Also solve instantly, thanks to a backtracking algorith
 ### Controls
 - CLICK a square to select it
 - Use numbers 1-9 to enter a number
+- Press BACKSPACE to remove the number
 - Press ENTER to confirm your move
-- Press SPACE to solve the entire board 
+- Number will turn BLACK if correct, remain RED if incorrect
+- Press SPACE to solve the entire board
